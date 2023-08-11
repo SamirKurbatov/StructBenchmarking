@@ -8,8 +8,8 @@ namespace StructBenchmarking
         [STAThread]
         public static void Main()
         {
-            var arraysData = Experiments.BuildChartDataForArrayCreation(new Benchmark(), 100);
-            var callsData = Experiments.BuildChartDataForMethodCall(new Benchmark(), 1000000);
+            var arraysData = Experiments.BuildChartDataForArrayCreation();
+            var callsData = Experiments.BuildChartDataForMethodCall();
             var form = CreateChartForm(arraysData, callsData);
             Application.Run(form);
         }

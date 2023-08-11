@@ -1,52 +1,104 @@
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 namespace StructBenchmarking
 {
+    interface IExperiment
+    {
+        List<ExperimentResult> RunExperiment(IBenchmark benchmark, int repeationCount);
+    }
+
+    abstract class AbstractExperiment : IExperiment
+    {
+        public List<ExperimentResult> RunExperiment(IBenchmark benchmark, int repeationCount)
+        {
+            var list = new List<ExperimentResult>();
+
+            var fields = Constants.FieldCounts;
+
+            foreach (var item in fields)
+            {
+                var averageTime = benchmark.MeasureDurationInMs(GetTask(item), repeationCount);
+                list.Add(new ExperimentResult(item, averageTime));
+            }
+
+            return list;
+        }
+
+        public abstract ITask GetTask(int size);
+    }
+
+    class ArrayExperiment : AbstractExperiment
+    {
+        public override ITask GetTask(int size)
+        {
+            return new ClassArrayCreationTask(size);
+        }
+    }
+
+    class StructExperiment : AbstractExperiment
+    {
+        public override ITask GetTask(int size)
+        {
+            return new StructArrayCreationTask(size);
+        }
+    }
+
+    class MethodCallWithClassArgumentTaskExperiment : AbstractExperiment
+    {
+        public override ITask GetTask(int size)
+        {
+            return new MethodCallWithClassArgumentTask(size);
+        }
+    }
+
+    class MethodCallWithStructArgumentTaskExperiment : AbstractExperiment
+    {
+        public override ITask GetTask(int size)
+        {
+            return new MethodCallWithStructArgumentTask(size);
+        }
+    }
+
     public class Experiments
     {
-        private static List<int> list = new List<int>();
-
         public static ChartData BuildChartDataForArrayCreation(
-            IBenchmark benchmark, int repetitionsCount)
+            IBenchmark benchmark, int repeationCount)
         {
-            var classesTimes = new List<ExperimentResult>();
+            var array = new ArrayExperiment();
 
-            var structuresTimes = new List<ExperimentResult>();
+            var structExperiment = new StructExperiment();
 
-            foreach (var element in Constants.FieldCounts)
+            var classResultListExperiment = array.RunExperiment(benchmark, repeationCount);
+
+            var structResultListExperiment = structExperiment.RunExperiment(benchmark, repeationCount);
+
+            return new ChartData()
             {
-                list.Add(element);
-            }
-
-            for (int i = 0; i < Constants.FieldCounts.Count; i++)
-            {
-                classesTimes.Add(new ExperimentResult(list[i], benchmark.MeasureDurationInMs(new ClassArrayCreationTask(list[i]), repetitionsCount)));
-                structuresTimes.Add(new ExperimentResult(list[i], benchmark.MeasureDurationInMs(new StructArrayCreationTask(list[i]), repetitionsCount)));
-            }
-
-            list.Clear();
-
-            return new ChartData
-            {
-                Title = "Create array",
-                ClassPoints = classesTimes,
-                StructPoints = structuresTimes,
+                ClassPoints = classResultListExperiment,
+                StructPoints = structResultListExperiment,
+                Title = "Create array"
             };
         }
 
         public static ChartData BuildChartDataForMethodCall(
-            IBenchmark benchmark, int repetitionsCount)
+            IBenchmark benchmark, int repeationCount)
         {
-            var classesTimes = new List<ExperimentResult>();
-            var structuresTimes = new List<ExperimentResult>();
+            var methodClass = new MethodCallWithClassArgumentTaskExperiment();
 
+            var methodStruct = new MethodCallWithStructArgumentTaskExperiment();
 
-            return new ChartData
+            var classResultListExperiment = methodClass.RunExperiment(benchmark, repeationCount);
+
+            var structResultListExperiment = methodStruct.RunExperiment(benchmark, repeationCount);
+
+            return new ChartData()
             {
-                Title = "Call method with argument",
-                ClassPoints = classesTimes,
-                StructPoints = structuresTimes,
+                ClassPoints = classResultListExperiment,
+                StructPoints = structResultListExperiment,
+                Title = "Call method with argument"
             };
         }
     }
